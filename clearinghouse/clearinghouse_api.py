@@ -8,14 +8,13 @@ from clearinghouse import clearinghouse_handler as hdlr
 verbose = False
 
 class ClearinghouseAPI:
-    
+
     HEARING, DEAFBLIND, BLIND, MOBILITY, COGNITIVE = 3, 4, 5, 6, 7
 
     def __init__(self, apiKey):
-        # constructor
         self._handler = hdlr.ClearinghouseHandler(apiKey)
-        
-    
+
+
     '''
     retrieveAPIData(apiName, args)
         - Returns a ClearinghouseStoredValue object with a string containing
@@ -25,8 +24,8 @@ class ClearinghouseAPI:
     def retrieveAPIData(self, apiName, **args):
         # call handler retrieve data
         return self._handler.retrieveData(apiName, **args)
-    
-    
+
+
     '''
     searchForFeatures(searchString)
         - Searches through feature names to find those that contain the search string
@@ -48,8 +47,8 @@ class ClearinghouseAPI:
     def listOfMobileDevices(self):
         # call handler mobile devices
         return self._handler.listOfMobileDevices()
-    
-    
+
+
     '''
     deviceDetails(deviceId)
         - Returns a dictionary of device brand, maker, and model along with
@@ -59,8 +58,8 @@ class ClearinghouseAPI:
     def deviceDetails(self, productId):
         # call handler device details
         return self._handler.deviceDetails(productId)
-    
-    
+
+
     '''
     searchForDevices(searchString)
         - Compares searchString to Brand, Maker, and Model
@@ -70,8 +69,8 @@ class ClearinghouseAPI:
     def searchForDevices(self, searchString):
         # call handler search for devices
         return self._handler.searchForDevices(searchString)
-    
-    
+
+
     '''
     setParams(args)
         - Sets a list of parameters to be used in API calls
@@ -81,8 +80,8 @@ class ClearinghouseAPI:
     def setParams(self, **args):
         # call handler set params
         self._handler.setParams(**args)
-        
-    
+
+
     '''
     getCurrentParams()
         - Returns a dictionary of current parameters and their values
@@ -90,7 +89,7 @@ class ClearinghouseAPI:
     def getCurrentParams(self):
         # call handler get params
         return self._handler.getCurrentParams()
-    
+
     '''
     getParam()
         - Returns the value of the toGet parameter
@@ -98,4 +97,3 @@ class ClearinghouseAPI:
     def getParam(self, toGet):
         # call handler get param
         return self._handler.getParam(toGet)
-        

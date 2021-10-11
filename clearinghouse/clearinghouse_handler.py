@@ -24,29 +24,28 @@ class _UrlRequestException(Exception):
         return self.message
 
 class ClearinghouseHandler:
-    
-    # constructor
+
     def __init__(self, apiKey):
         # api key used in URL requests
         self._apiKey = apiKey
-        
+
         # beginning of the request URL for all APIs except Video Programming Distributors
         self._requestStr = "http://data.fcc.gov/api/accessibilityclearinghouse"
-        
+
         # set default values for mfg, region, etc. to empty strings
         self._currentParams = dict.fromkeys(['disabilityId', 'mfg', 'region', 'page', 'feat', 'searchString', 'limit', 'tag', 'entityRangeStartWith', 'entityRangeEndWith', 'groupByState', 'stateName', 'date'], '')
-    
+
         # add default values that are not empty strings
         self._currentParams.update(zip(['responseFormat', 'callback', 'rowPerPage', 'category', 'excel', 'filename', 'productID', 'order', 'contentType', 'entityType', 'vpdtype', 'dateFlag'],\
                               ['xml', '?', -1, 'mobile', False, 'clearinghouse.xls', 1, 'asc', 'fact sheet', 'at program', 'broadcaster', 'future']))
-    
+
         # dictionary of formatted values for use in request URLs
         self._formattedParams = dict.fromkeys(['disabilityId', 'mfg', 'region', 'page', 'feat', 'searchString', 'limit', 'tag', 'entityRangeStartWith', 'entityRangeEndWith', 'groupByState', 'stateName', 'date'], '')
-    
+
         # add formatted values that are not empty strings
         self._formattedParams.update(zip(['responseFormat', 'callback', 'rowPerPage', 'rows_per_page', 'category', 'productID', 'order', 'contentType', 'entityType', 'vpdtype', 'vpdFormat', 'dateFlag'],\
                               ['&format=xml', '&jsonCallback=?', '&rowPerPage=-1', '&rows_per_page=-1', '&category=mobile', '&productID=1', '&order=asc', '&contentType=Fact%20sheet', '&entityType=at%20program', 'vpdtype=broadcaster.', 'xml?', '&dateFlag=future']))
-        
+
         # dictionary (keys of parameter names) containing the API parameters
         # sub-dictionary with validValues OR conditionals that must be met by the parameter
         self._varList = {'excel':           {'validValues': [True, False]},
@@ -72,7 +71,7 @@ class ClearinghouseHandler:
                         'page':             {'conditionals': "(newVal > 0)"},
                         'callback':         {'conditionals': "(newVal != '')"}
                         }
-        
+
         # dictionary of API names
         # each key contains a dictionary of information about that API
         # - apiURL
@@ -139,49 +138,49 @@ class ClearinghouseHandler:
                                                      'parameters': ['vpdtype', 'vpdFormat', 'rows_per_page', 'page']
                                                     }
                           }
-        
+
         # update product ids
         self._varList['productID']['validValues'] = self._createProductIdList()
         #print(self._varList['productID']['validValues'])
-        
+
         # update manufacturers
         self._varList['mfg']['validValues'] = self._createManufacturerList()
-        
+
         # dictionary of feature ids and names
         self._dictOfFeatures = self._createFeatureList()
         self._varList['feat']['validValues'] = self._dictOfFeatures.keys()
-        
+
         # END INIT
-        
+
     def retrieveData(self, apiName, **args):
         if args: self.setParams(**args)
-        
+
         if apiName.lower() in self._apiCalls:
             retval = self._callApi(apiName.lower())
         else:
             raise _ValueNotFoundException("api name '" + str(apiName) + "' is not a valid name")
-            
+
         return retval
-    
+
     def getFormattedParam(self, toget):
         if toget in self._formattedParams:
             return self._formattedParams[toget]
         else:
             raise _ValueNotFoundException("Parameter '" + str(toget) + "' is not an available parameter")
-    
+
     def getParam(self, toget):
         if toget in self._currentParams:
             return self._currentParams[toget]
         else:
             raise _ValueNotFoundException("Parameter '" + str(toget) + "' is not an available parameter")
-    
+
     # default values getter method
     def getCurrentParams(self, **args):
         return self._currentParams
-    
+
     # default values setter method
     def setParams(self, **args):
-        
+
         # check for existence of variable name and set default value if present
         for k in args:
             if k not in self._currentParams: # parameter name not found
@@ -206,7 +205,7 @@ class ClearinghouseHandler:
                             return value
                     else:
                         return False
-                        
+
                 param = self._varList[k]
                 newVal = args[k]
                 try:
@@ -216,7 +215,7 @@ class ClearinghouseHandler:
                     # check if parameter supports multiple values
                     if not ((k == 'feat') or (k == 'mfg') or (k == 'region')):
                         raise _ValueNotFoundException("Parameter '" + k + "' does not support multiple values")
-                    
+
                     for val in iterator:
                         if 'conditionals' in param:
                             runConditional(val, param, k)
@@ -228,7 +227,7 @@ class ClearinghouseHandler:
                                 self._formatVar(k, valWithCaps)
                     # all tests have passed, set current param
                     self._currentParams[k] = newVal
-                    
+
                 except (TypeError, AssertionError):
                     # parameter value is a number or a single string, not a list
                     if 'conditionals' in param:
@@ -241,18 +240,18 @@ class ClearinghouseHandler:
                             self._formatVar(k, valWithCaps)
                     # all tests have passed, set current param
                     self._currentParams[k] = newVal
-        
+
     def searchForFeatures(self, searchString):
         searchString = searchString.lower()
         searchList = searchString.split()
-        
+
         # check for all features key words
         if (searchString == 'all features'):
             return self._dictOfFeatures
-        
+
         # return item
         featureList = dict()
-        
+
         # loop through all disability IDs and get feature ID and names that contain search string
         listOfDisabilityIds = self._varList['disabilityId']['validValues']
         for disId in listOfDisabilityIds:
@@ -265,13 +264,13 @@ class ClearinghouseHandler:
                     featureList[productID] = name
                 if (all(word in name.lower() for word in searchList) and productID not in featureList):
                     featureList[productID] = name
-        
+
         return featureList
-    
+
     def listOfMobileDevices(self):
-        
+
         storedValue = self.retrieveData('mobile devices', rowPerPage=-1)
-        
+
         content = et.fromstring(storedValue.getResponseData())
         deviceList = dict()
 
@@ -282,36 +281,36 @@ class ClearinghouseHandler:
             model = str(product.find("modelNumber").text)
             if productID not in deviceList:
                 deviceList[productID] = (brand, maker, model)
-            
+
         return deviceList
-    
+
     def deviceDetails(self, productID):
-        
+
         storedValue = self.retrieveData('device details', productID=productID)
         content = et.fromstring(storedValue.getResponseData())
         deviceDetails = dict()
         deviceDetails['features'] = dict()
-        
+
         for product in content.findall('Product'):
             pBrand =  str(product.find("brand").text)
             pMaker = str(product.find("maker").text)
             pModel = str(product.find("modelNumber").text)
             deviceDetails['brand'], deviceDetails['maker'], deviceDetails['model'] = pBrand, pMaker, pModel
-        
+
         for features in content.findall('Product/disabilityTypeList/featureList'):
             featId = int(features.find('id').text)
             feature = str(features.find('name').text)
             deviceDetails['features'][featId] = feature
-            
+
         return deviceDetails
-    
+
     def searchForDevices(self, searchString):
-        
+
         self.setParams(searchString=searchString, rowPerPage=-1)
         storedValue = self.retrieveData('search')
         content = et.fromstring(storedValue.getResponseData())
         deviceList = dict()
-        
+
         for product in content.findall('Product'):
             productID = int(product.find("id").text)
             brand = str(product.find("brand").text)
@@ -320,31 +319,31 @@ class ClearinghouseHandler:
             regions = str(product.find("regions").text)
             if productID not in deviceList:
                 deviceList[productID] = (brand, maker, model, regions)
-            
+
         return deviceList
-    
-    
+
+
     """*********************************************************
     *                   Private Methods                        *
     *********************************************************"""
-    
+
     def _callApi(self, apiName):
-        
+
         api = self._apiCalls[apiName]
-        
+
         # if currentParams['excel'] is True and the excelURL exists, set excel variable to True
         excel = (self._currentParams['excel'] and 'excelURL' in api)
-            
+
         # special case for VPD
         if apiName == 'vpd contacts':
             requestStr = 'http://data.fcc.gov/api/vpd-service/contacts/'
-            
+
             # add parameters to requestString
             for param in api['parameters']:
                 requestStr += self._formattedParams[param]
             # ENDIF
         else: # all other APIs
-            
+
             # check for warnings and errors
             if 'warnings' in api:
                 warningList = api['warnings']
@@ -355,18 +354,18 @@ class ClearinghouseHandler:
                 errList = api['errors']
                 for i, checkErr in enumerate(errList):
                     if eval(checkErr): warnings.warn(api['errorMsgs'][i])
-            
+
             requestStr = self._requestStr
-            
+
             # prepare excel api call or regular api call
             if excel: requestStr += api['excelURL'] + self._apiKey
             else: requestStr += api['apiURL'] + self._apiKey
-            
+
             # add parameters to request str
             for param in api['parameters']:
                 requestStr += self._formattedParams[param]
             # END ELSE
-                
+
         # call excel api or regular api
         if excel:
             filename = self._currentParams['filename']
@@ -378,21 +377,21 @@ class ClearinghouseHandler:
             if not ('.xls' in filename): filename += '.xls'
             urllib.request.urlretrieve(requestStr, filename)
             storedValue = chsv.ClearinghouseStoredValue('excel', filename, requestStr)
-        
+
         else:
             response = self._runRequest(requestStr)
-            
+
             try: content = response.read().decode('utf-8').encode('ascii', 'ignore').decode('utf-8')
             except UnicodeDecodeError:
                 print("Error decoding and encoding content")
                 content=''
-            
+
             storedValue = chsv.ClearinghouseStoredValue(self._currentParams['responseFormat'], content, requestStr)
-            
+
         return storedValue
-        
+
     def _formatVar(self, name, value):
-                
+
         # special cases
         if name == 'responseFormat':
             self._formattedParams['responseFormat'] = '&format=' + value
@@ -400,18 +399,18 @@ class ClearinghouseHandler:
             if value == 'jsonp':
                 self._formattedParams['responseFormat'] += '&jsonCallback=' + self._currentParams['callback']
                 self._formattedParams['vpdFormat'] = 'json?jsonpCallback=' + self._currentParams['callback']
-            
+
         elif name == 'callback' and self._currentParams['responseFormat'] == 'jsonp':
             self._formattedParams['responseFormat'] = '&format=' + self._currentParams['responseFormat'] + '&jsonCallback=' + str(value)
             self._formattedParams['vpdFormat'] = 'json?jsonpCallback=' + str(value)
-        
+
         elif name == 'vpdtype':
             self._formattedParams['vpdtype'] = 'vpdtype=' + value + '.'
-        
+
         elif name == 'rowPerPage':
             self._formattedParams['rowPerPage'] = '&rowPerPage=' + str(value)
             self._formattedParams['rows_per_page'] = '&rows_per_page=' + str(value)
-        
+
         else: # all other parameters
             def addSpecialChars(name, value):
                 value = value.replace(' ', '%20')
@@ -425,8 +424,8 @@ class ClearinghouseHandler:
                 self._formattedParams[name] = addSpecialChars(str(name), str(value))
             except AssertionError:
                 self._formattedParams[name] += addSpecialChars(str(name), str(value))
-        
-    
+
+
     '''
     runRequest()
         - Return response string from API call
@@ -439,14 +438,14 @@ class ClearinghouseHandler:
         except urllib.error.URLError as err:
             raise _UrlRequestException("Error processing request: " + err.read().decode("UTF8"))
             return None
-        
+
     def _createFeatureList(self):
         global verbose
         if verbose: print('Creating dictionary of features... ', end='')
-        
+
         # return item
         featureIdsAndName = dict()
-        
+
         # loop through all disability IDs and get feature ID and names that contain search string
         listOfDisabilityIds = self._varList['disabilityId']['validValues']
         for disId in listOfDisabilityIds:
@@ -457,47 +456,46 @@ class ClearinghouseHandler:
                 name = str(product.find("name").text)
                 if (productID not in featureIdsAndName):
                     featureIdsAndName[productID] = name
-        
+
         if verbose and len(featureIdsAndName): print('Success!')
         elif verbose: print('Failed')
         return featureIdsAndName
-    
+
     def _createProductIdList(self):
         global verbose
         if verbose: print('Creating list of product IDs... ', end='')
-        
+
         productIdList = []
-        
+
         storedValue = self.retrieveData('mobile devices')
         # check for invalid api key
         if 'Incorrect API Key' in str(storedValue.getResponseData()):
             raise ValueError("Invalid API Key")
-        
+
         content = et.fromstring(storedValue.getResponseData())
-        
+
         for product in content.findall('Product'):
             productId = int(product.find("id").text)
             if not productId in productIdList: productIdList.append(productId)
-            
+
         if verbose and len(productIdList): print('Success!')
         elif verbose: print('Failed')
         return productIdList
-    
+
     def _createManufacturerList(self):
         global verbose
         if verbose: print('Creating list of manufacturers... ', end='')
-        
+
         mfgList = []
-        
+
         storedValue = self.retrieveData('manufacturers')
         content = et.fromstring(storedValue.getResponseData())
-        
+
         for name in content.findall('Manufacturer'):
             mfg = name.text
             if not mfg in mfgList:
                 mfgList.append(mfg)
-        
+
         if verbose and len(mfgList): print('Success!')
         elif verbose: print('Failed')
         return mfgList
-    
